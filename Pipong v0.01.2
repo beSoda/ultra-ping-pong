@@ -1,0 +1,116 @@
+import pygame
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Screen settings
+WIDTH = 800
+HEIGHT = 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Ping Pong - Speed Doubles")
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (150, 150, 150)
+
+# Paddle settings
+PADDLE_WIDTH = 15
+PADDLE_HEIGHT = 90
+paddle_y = HEIGHT // 2 - PADDLE_HEIGHT // 2
+paddle_speed = 5
+
+# Ball settings
+BALL_SIZE = 20
+ball_x = WIDTH // 2
+ball_y = HEIGHT // 2
+ball_speed_x = 5
+ball_speed_y = 5
+
+# Score
+score = 0
+font = pygame.font.Font(None, 36)
+large_font = pygame.font.Font(None, 72)
+
+# Game states
+PLAYING = 0
+GAME_OVER = 1
+game_state = PLAYING
+
+# Game loop
+clock = pygame.time.Clock()
+running = True
+
+def reset_game():
+    global paddle_y, ball_x, ball_y, ball_speed_x, ball_speed_y, score, game_state
+    paddle_y = HEIGHT // 2 - PADDLE_HEIGHT // 2
+    ball_x = WIDTH // 2
+    ball_y = HEIGHT // 2
+    ball_speed_x = 5
+    ball_speed_y = 5
+    score = 0
+    game_state = PLAYING
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN and game_state == GAME_OVER:
+            if event.key == pygame.K_r:  # Retry
+                reset_game()
+            elif event.key == pygame.K_q:  # Quit
+                running = False
+
+    if game_state == PLAYING:
+        # Paddle movement
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP] and paddle_y > 0:
+            paddle_y -= paddle_speed
+        if keys[pygame.K_DOWN] and paddle_y < HEIGHT - PADDLE_HEIGHT:
+            paddle_y += paddle_speed
+
+        # Ball movement
+        ball_x += ball_speed_x
+        ball_y += ball_speed_y
+
+        # Ball collision with top and bottom
+        if ball_y <= 0 or ball_y >= HEIGHT - BALL_SIZE:
+            ball_speed_y = -ball_speed_y
+
+        # Ball collision with paddle
+        paddle_rect = pygame.Rect(50, paddle_y, PADDLE_WIDTH, PADDLE_HEIGHT)
+        ball_rect = pygame.Rect(ball_x, ball_y, BALL_SIZE, BALL_SIZE)
+        if paddle_rect.colliderect(ball_rect) and ball_speed_x < 0:
+            ball_speed_x = -ball_speed_x * 2  # Double speed when hitting paddle
+            ball_speed_y *= 2
+            score += 1
+
+        # Ball out of bounds (game over)
+        if ball_x < 0:
+            game_state = GAME_OVER
+        elif ball_x > WIDTH:
+            ball_speed_x = -ball_speed_x
+
+        # Drawing game
+        screen.fill(BLACK)
+        pygame.draw.rect(screen, WHITE, (50, paddle_y, PADDLE_WIDTH, PADDLE_HEIGHT))
+        pygame.draw.ellipse(screen, WHITE, (ball_x, ball_y, BALL_SIZE, BALL_SIZE))
+        score_text = font.render(f"Score: {score}", True, WHITE)
+        screen.blit(score_text, (10, 10))
+
+    elif game_state == GAME_OVER:
+        # Drawing retry screen
+        screen.fill(BLACK)
+        game_over_text = large_font.render("Game Over", True, WHITE)
+        score_text = font.render(f"Final Score: {score}", True, WHITE)
+        retry_text = font.render("Press 'R' to Retry or 'Q' to Quit", True, GRAY)
+        
+        screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - 100))
+        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, HEIGHT // 2))
+        screen.blit(retry_text, (WIDTH // 2 - retry_text.get_width() // 2, HEIGHT // 2 + 50))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
